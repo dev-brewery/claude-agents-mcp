@@ -1,0 +1,31 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev for building)
+RUN npm ci
+
+# Copy source and build
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+RUN npm run build
+
+# Create volume mount point
+VOLUME ["/app/data"]
+
+# Set environment
+ENV NODE_ENV=production
+ENV CONFIG_DATA_PATH=/app/data
+ENV API_PORT=8765
+
+EXPOSE 8765
+
+# Run the API server
+CMD ["node", "dist/api.js"]

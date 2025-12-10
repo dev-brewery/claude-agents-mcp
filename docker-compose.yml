@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  claude-agents-mcp:
+    build: .
+    container_name: claude-agents-mcp
+    restart: unless-stopped
+    volumes:
+      # Persist data directory
+      - ./data:/app/data
+      # Optional: Mount existing configs for migration
+      # - /path/to/nextcloud/AgentConfigs/.claude:/mnt/source:ro
+    environment:
+      - NODE_ENV=production
+      - CONFIG_DATA_PATH=/app/data
+    # MCP servers typically communicate via stdio
+    # For network access, you can add an HTTP wrapper
+    stdin_open: true
+    tty: true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Optional: HTTP API wrapper for network access
+  claude-agents-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: claude-agents-api
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - CONFIG_DATA_PATH=/app/data
+      - API_PORT=8765
+    depends_on:
+      - claude-agents-mcp
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.claude-agents.rule=Host(`claude-agents.local`)"
+      - "traefik.http.services.claude-agents.loadbalancer.server.port=8765"
+
+networks:
+  default:
+    name: homelab
+    external: true
