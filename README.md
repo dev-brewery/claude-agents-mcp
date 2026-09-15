@@ -15,6 +15,28 @@ This MCP server solves these problems by:
 - Providing version control and conflict resolution
 - Enabling live updates across all connected Claude sessions
 
+## Architecture
+
+```
+Claude Code (any machine)
+    |
+    | MCP protocol (stdio)
+    v
+claude-agents-mcp server
+    |
+    +-- SQLite store (agents, configs, metadata)
+    |     single-writer, no file locks to fight sync clients
+    |
+    +-- Export layer
+          writes agent definitions back out as files
+          when a target machine needs them on disk
+```
+
+One writer (SQLite) replaces many synced files. Sync services stop fighting
+Claude Code over file locks because the canonical state is no longer a
+directory of loose files; machines pull from the server and export what they
+need locally.
+
 ## Quick Start
 
 ### Local Development
